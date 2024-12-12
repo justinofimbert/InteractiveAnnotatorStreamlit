@@ -1,4 +1,6 @@
 streamlit
+Pillow
 streamlit-image-annotation
-pillow
+matplotlib
+pandas
 numpy
