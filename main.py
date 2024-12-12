@@ -1,61 +1,50 @@
 import streamlit as st
-from streamlit_drawable_canvas import st_canvas
+from streamlit_image_annotation import pointdet
+import io
 from PIL import Image
-import numpy as np
 
-# Title
-st.title("Interactive Image Point Marker with Color Selection")
+# Define label list
+label_list = ['negative', 'positive', 'not important']
 
-# File uploader
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
+# Initialize session state to store points and labels if not already present
+if 'result_dict' not in st.session_state:
+    st.session_state['result_dict'] = {}
 
-if uploaded_file:
-    # Open the uploaded file as an image
-    image = Image.open(uploaded_file)
-    img_width, img_height = image.size
-    img_array = np.array(image)  # Convert to NumPy array
+# Image upload
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
-    # Display uploaded image
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+# Check if an image is uploaded
+if uploaded_file is not None:
+    # Open the uploaded image using PIL
+    img = Image.open(uploaded_file)
     
-
-    # Add a color selector
-    selected_color = st.radio(
-        "Select Point Color",
-        options=["Red", "Blue"],
-        index=0,
-        horizontal=True,
+    # Convert to a format that can be used in pointdet
+    img_path = "uploaded_image.jpg"
+    img.save(img_path)
+    
+    # Initialize points and labels if the image hasn't been annotated yet
+    if img_path not in st.session_state['result_dict']:
+        st.session_state['result_dict'][img_path] = {'points': [], 'labels': []}
+    
+    # Use pointdet to annotate the image
+    new_labels = pointdet(
+        image_path=img_path,
+        label_list=label_list,
+        points=st.session_state['result_dict'][img_path]['points'],
+        labels=st.session_state['result_dict'][img_path]['labels'],
+        use_space=True,
+        key=img_path
     )
-
-    # Map color choices to actual color codes
-    color_map = {
-        "Red": "red",
-        "Blue": "blue",
-    }
-    stroke_color = color_map[selected_color]
-
-    # Add interactive canvas
-    canvas_result = st_canvas(
-        fill_color="rgba(255, 165, 0, 0.3)",  # Transparent fill color
-        stroke_width=3,
-        stroke_color=stroke_color,  # Use the selected color
-        background_image=Image.fromarray(img_array),  # Convert NumPy array back to PIL image
-        update_streamlit=True,
-        height=img_height,  # Set canvas height
-        width=img_width,  # Set canvas width
-        drawing_mode="point",  # Enable point marking
-        key="canvas",
-    )
-
-    # Count and display number of points
-    if canvas_result.json_data is not None:
-        points = canvas_result.json_data["objects"]
-        num_points = len(points) if points else 0
-        
-        # st.write(f"Number of points clicked: {num_points}")
-
-        # Display clicked coordinates and their colors
-        # if points:
-        #     st.write("Clicked Points Coordinates and Colors:")
-        #     for point in points:
-        #         st.write(f"Coordinates: ({point['left']:.1f}, {point['top']:.1f}), Color: {point['stroke']}")
+    
+    # Update points and labels in session state if any changes are made
+    if new_labels is not None:
+        st.session_state['result_dict'][img_path]['points'] = [v['point'] for v in new_labels]
+        st.session_state['result_dict'][img_path]['labels'] = [v['label_id'] for v in new_labels]
+    
+    # # Show the annotated image and the result
+    # st.image(img, caption="Annotated Image", use_column_width=True)
+    
+    # Display the current annotations (points and labels)
+    # st.json(st.session_state['result_dict'])
+else:
+    st.write("Please upload an image.")
