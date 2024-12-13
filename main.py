@@ -155,65 +155,55 @@ if uploaded_file is not None:
                 st.session_state['result_dict'][patch_name]['labels'].extend(labels)
 
         # Process annotations and generate download content
-        if st.button("Terminar anotaciones"):
+        if st.button("Finish annotations"):
 
-            col1, col2 = st.columns([6, 6])
-            with col1:
+            all_points = set()  # Set to track unique points
+            all_labels = {}  # Dictionary to track labels for each unique point
 
-                all_points = []
-                all_labels = []
+            for patch_name, data in st.session_state['result_dict'].items():
+                patch_points = data['points']
+                patch_labels = data['labels']
 
-                for patch_name, data in st.session_state['result_dict'].items():
-                    patch_points = data['points']
-                    patch_labels = data['labels']
+                patch_index = data['patch_index']
+                patch_x_coord = (patch_index % hor_splits) * (patch_width * (1 - overlap))
+                patch_y_coord = (patch_index // vert_splits) * (patch_height * (1 - overlap))
 
-                    for point, label in zip(patch_points, patch_labels):
-                        x, y = point
-                        x = int(x)
-                        y = int(y)
-                        all_points.append([x, y])
-                        all_labels.append(label)
+                for point, label in zip(patch_points, patch_labels):
+                    x, y = point
 
-                # Create a DataFrame to store points and labels
-                df = pd.DataFrame(all_points, columns=["X", "Y"])
-                df["Label"] = all_labels
+                    x += patch_x_coord
+                    y += patch_y_coord
 
-                # Create CSV content for download
-                csv_buffer = io.StringIO()
-                df.to_csv(csv_buffer, index=False)
-                csv_data = csv_buffer.getvalue()
+                    x = int(x)
+                    y = int(y)
 
-                # **1st Download Button** - CSV of all points and labels
-                st.download_button(
-                    label="Descargar Anotaciones (CSV)",
-                    data=csv_data,
-                    file_name=f'{uploaded_file_name}.csv',
-                    mime='text/csv'
-                )
+                    point_tuple = (x, y)
+                    
+                    # Only add if it's not a duplicate point
+                    if point_tuple not in all_points:
+                        all_points.add(point_tuple)
+                        all_labels[point_tuple] = label  # Store the label for this point
+                    else:
+                        # Optional: Update the label if you want the latest label to be stored
+                        all_labels[point_tuple] = label
 
-            with col2:
+            # If you need lists for all_points and all_labels
+            all_points = list(all_points)
+            all_labels = [all_labels[point] for point in all_points]
 
-                # **Generate the Annotation Report**
-                num_positive = all_labels.count(label_list[0])
-                num_negative = all_labels.count(label_list[1])
 
-                report_content = f"""
-                Reporte de anotación
-                ==================
-                Nombre de la imagen: {uploaded_file_name}
-                Número de puntos positivos: {num_positive}
-                Número de puntos negativos: {num_negative}
-                """
+            # Create CSV content
+            csv_buffer = io.StringIO()
+            csv_writer = csv.writer(csv_buffer)
+            csv_writer.writerow(["X", "Y", "Label"])
+            for point, label in zip(all_points, all_labels):
+                csv_writer.writerow([point[0], point[1], label_list[label]])
 
-                # Create file-like object to download the report
-                report_buffer = io.StringIO()
-                report_buffer.write(report_content)
-                report_data = report_buffer.getvalue()
-
-                # **2nd Download Button** - Annotation Report
-                st.download_button(
-                    label="Descargar Reporte (txt)",
-                    data=report_data,
-                    file_name=f'{uploaded_file_name}_reporte.txt',
-                    mime='text/plain'
-                )
+            # Convert CSV buffer to downloadable file
+            csv_data = csv_buffer.getvalue().encode('utf-8')
+            st.download_button(
+                label="Download CSV",
+                data=csv_data,
+                file_name="annotations.csv",
+                mime="text/csv"
+            )
