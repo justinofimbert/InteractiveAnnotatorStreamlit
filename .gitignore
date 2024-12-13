@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Ignore CSV
+*.csv
+
 # Ignore image files (add specific extensions as needed)
 *.jpg
 *.jpeg
