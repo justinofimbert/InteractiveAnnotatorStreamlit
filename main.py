@@ -160,6 +160,11 @@ if uploaded_file is not None:
             all_points = set()  # Set to track unique points
             all_labels = {}  # Dictionary to track labels for each unique point
 
+
+            vert_splits = st.session_state['vert_splits']
+            hor_splits = st.session_state['hor_splits']
+            overlap = st.session_state['overlap']
+
             for patch_name, data in st.session_state['result_dict'].items():
                 patch_points = data['points']
                 patch_labels = data['labels']
