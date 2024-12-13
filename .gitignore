@@ -1,5 +1,13 @@
-# Ignorar __pycache__ y archivos .pyc
+# Ignore Python cache files
 __pycache__/
 *.pyc
 *.pyo
 
+# Ignore image files (add specific extensions as needed)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.svg
