@@ -204,6 +204,6 @@ if uploaded_file is not None:
             st.download_button(
                 label="Download CSV",
                 data=csv_data,
-                file_name="annotations.csv",
+                file_name=f"{uploaded_file_name}.csv",
                 mime="text/csv"
             )
