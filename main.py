@@ -157,48 +157,32 @@ if uploaded_file is not None:
         # Process annotations and generate download content
         if st.button("Terminar anotaciones"):
 
-            all_points = []
-            all_labels = []
-
-            for patch_name, data in st.session_state['result_dict'].items():
-                patch_points = data['points']
-                patch_labels = data['labels']
-
-                for point, label in zip(patch_points, patch_labels):
-                    x, y = point
-                    x = int(x)
-                    y = int(y)
-                    all_points.append([x, y])
-                    all_labels.append(label)
-
-            # Create a DataFrame to store points and labels
-            df = pd.DataFrame(all_points, columns=["X", "Y"])
-            df["Label"] = all_labels
-
-            # Create CSV content for download
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_data = csv_buffer.getvalue()
-
-            # **Generate the Annotation Report**
-            num_positive = all_labels.count(label_list[0])
-            num_negative = all_labels.count(label_list[1])
-
-            report_content = f"""
-            Reporte de anotación
-            ==================
-            Nombre de la imagen: {uploaded_file_name}
-            Número de puntos positivos: {num_positive}
-            Número de puntos negativos: {num_negative}
-            """
-
-            # Create file-like object to download the report
-            report_buffer = io.StringIO()
-            report_buffer.write(report_content)
-            report_data = report_buffer.getvalue()
-
             col1, col2 = st.columns([6, 6])
             with col1:
+
+                all_points = []
+                all_labels = []
+
+                for patch_name, data in st.session_state['result_dict'].items():
+                    patch_points = data['points']
+                    patch_labels = data['labels']
+
+                    for point, label in zip(patch_points, patch_labels):
+                        x, y = point
+                        x = int(x)
+                        y = int(y)
+                        all_points.append([x, y])
+                        all_labels.append(label)
+
+                # Create a DataFrame to store points and labels
+                df = pd.DataFrame(all_points, columns=["X", "Y"])
+                df["Label"] = all_labels
+
+                # Create CSV content for download
+                csv_buffer = io.StringIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_data = csv_buffer.getvalue()
+
                 # **1st Download Button** - CSV of all points and labels
                 st.download_button(
                     label="Descargar Anotaciones (CSV)",
@@ -208,6 +192,24 @@ if uploaded_file is not None:
                 )
 
             with col2:
+
+                # **Generate the Annotation Report**
+                num_positive = all_labels.count(label_list[0])
+                num_negative = all_labels.count(label_list[1])
+
+                report_content = f"""
+                Reporte de anotación
+                ==================
+                Nombre de la imagen: {uploaded_file_name}
+                Número de puntos positivos: {num_positive}
+                Número de puntos negativos: {num_negative}
+                """
+
+                # Create file-like object to download the report
+                report_buffer = io.StringIO()
+                report_buffer.write(report_content)
+                report_data = report_buffer.getvalue()
+
                 # **2nd Download Button** - Annotation Report
                 st.download_button(
                     label="Descargar Reporte (txt)",
