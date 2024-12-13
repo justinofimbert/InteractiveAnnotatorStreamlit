@@ -181,15 +181,15 @@ if uploaded_file is not None:
             csv_data = csv_buffer.getvalue()
 
             # **Generate the Annotation Report**
-            num_positive = all_labels.count('Positivo')
-            num_negative = all_labels.count('Negativo')
+            num_positive = all_labels.count(label_list[0])
+            num_negative = all_labels.count(label_list[1])
 
             report_content = f"""
             Reporte de anotación
             ==================
             Nombre de la imagen: {uploaded_file_name}
-            Número de puntos positivos: {label_list[0]}
-            Número de puntos negativos: {label_list[1]}
+            Número de puntos positivos: {num_positive}
+            Número de puntos negativos: {num_negative}
             """
 
             # Create file-like object to download the report
