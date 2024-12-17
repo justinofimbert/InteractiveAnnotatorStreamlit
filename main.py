@@ -148,6 +148,11 @@ if uploaded_file is not None:
         st.session_state['overlap'] = overlap
         st.session_state['patches'] = splits
         st.session_state['patch_index'] = 0  # Reset to first patch
+        for i in range(len(splits)):
+            # Convert to a format that can be used in pointdet
+            patch_path = f"patch_{i}.jpg"
+            patch_img = Image.fromarray(st.session_state['patches'][i])
+            patch_img.save(patch_path)
 
 
     if st.session_state['patches'] is not None:
@@ -211,7 +216,7 @@ if uploaded_file is not None:
                 x, y = v['point']
                 label_id = v['label_id']
 
-                patch_points.append(v['point'])
+                patch_points.append([int(x), int(y)])
 
                 x += current_patch_x_coord
                 y += current_patch_y_coord
@@ -254,6 +259,8 @@ if uploaded_file is not None:
                 all_points.remove(removed_point)
                 del all_labels[removed_point]  # Remove the corresponding label
 
+            st.session_state['all_points'] = all_points
+            st.session_state['all_labels'] = all_labels
 
             all_points = list(all_points)
             all_labels = [all_labels[point] for point in all_points]
@@ -288,8 +295,7 @@ if uploaded_file is not None:
             st.session_state['csv_data'] = csv_data
             st.session_state['report_data'] = report_data
 
-
-
+ 
         # Sidebar buttons
         with st.sidebar:
             # **1st Download Button** - CSV Annotations
