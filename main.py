@@ -327,7 +327,8 @@ def main():
                 use_space=True,
                 key=img_path,
                 mode = mode,
-                label = st.session_state['label']
+                label = st.session_state['label'],
+                point_width=5
             )
             
             # Update points and labels in session state if any changes are made
