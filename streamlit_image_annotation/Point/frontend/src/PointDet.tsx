@@ -58,7 +58,7 @@ const PointDet = ({ args, theme }: ComponentProps) => {
   const [scale, setScale] = useState(1.0)
   useEffect(() => {
     const resizeCanvas = () => {
-      const scale_ratio = window.innerWidth * 0.8 / image_size[0]
+      const scale_ratio = window.innerWidth * 1 / image_size[0]
       setScale(Math.min(scale_ratio, 1.0))
       Streamlit.setFrameHeight(image_size[1] * Math.min(scale_ratio, 1.0))
     }
@@ -103,7 +103,7 @@ const PointDet = ({ args, theme }: ComponentProps) => {
       <ThemeSwitcher theme={theme}>
         <Center>
           <HStack>
-            <Box width="80%">
+            <Box width="100%">
               <PointCanvas
                 pointsInfo={pointsInfo}
                 mode={mode}  // <-- Use the mode directly from args

@@ -74,7 +74,7 @@ def image_split(image, height=512, width=512, overlap=0):
     return imgs, vertical_splits, horizontal_splits
 
 
-def update_patch_data(session_state, patch_width, patch_height):
+def update_patch_data(session_state, patch_width, patch_height, scale):
 
     current_patch_index = session_state['patch_index']
     vert_splits = session_state['vert_splits']
@@ -101,7 +101,11 @@ def update_patch_data(session_state, patch_width, patch_height):
 
         if ( x>=0 and y>=0 and x<patch_width and y<patch_height ):
 
+            x *= scale[0]
+            y *= scale[1]
+
             point = [x, y]
+
             patch_points.append(point)
             patch_labels.append(label)
 
@@ -149,7 +153,7 @@ def update_results(session_state, file_name):
     session_state['report_data'] = report_data
 
 
-def update_annotations(new_labels, session_state, patch_width, patch_height):
+def update_annotations(new_labels, session_state, patch_width, patch_height, scale):
 
     all_points = session_state['all_points'] # Set to track unique point
     all_labels = session_state['all_labels'] # Dictionary to track labels for each unique point
@@ -168,8 +172,8 @@ def update_annotations(new_labels, session_state, patch_width, patch_height):
     for v in new_labels:
         x, y = v['point']
 
-        x = int(x)
-        y = int(y)
+        x = int(x)//scale[0]
+        y = int(y)//scale[1]
 
         label_id = v['label_id']
         patch_points.append([x, y])
@@ -220,10 +224,19 @@ def main():
 
     overlap = 0.5
 
+    display_size = [1024, 1024]
+
     # Sidebar content
     st.sidebar.title("Anotación de imágenes")
-    st.session_state['action'] = st.sidebar.selectbox("Acción:", actions)
-    st.session_state['label'] = st.sidebar.selectbox("Clase:", label_list)
+
+    with st.sidebar:
+
+        col1, col2 = st.columns([2, 2])
+        with col1:
+            st.session_state['action'] = st.selectbox("Acción:", actions)
+
+        with col2:
+            st.session_state['label'] = st.selectbox("Clase:", label_list)
 
     # Image upload
     uploaded_file = st.file_uploader("Subir imagen", type=["jpg", "jpeg", "png"])
@@ -245,7 +258,10 @@ def main():
                 min_value=16, max_value=complete_image.size[1], value=512, step=16)
         patch_width = col2.number_input("Seleccionar ancho de la sub-imagen", \
                 min_value=16, max_value=complete_image.size[0], value=512, step=16)
-        
+
+        scale = [ display_size[0]//patch_width,
+                  display_size[1]//patch_height ]
+
         if st.button("Generar sub-imágenes"):
             splits, vert_splits, hor_splits = \
                 image_split( np.array(complete_image), 
@@ -259,8 +275,11 @@ def main():
                 # Convert to a format that can be used in pointdet
                 patch_path = f"patch_{i}.jpg"
                 patch_img = Image.fromarray(st.session_state['patches'][i])
-                patch_img.save(patch_path)
 
+                # Resize the image to 1024x1024
+                resized_img = patch_img.resize(display_size)
+
+                resized_img.save(patch_path)
 
         if st.session_state['patches'] is not None:
 
@@ -271,19 +290,23 @@ def main():
                 index=st.session_state['patch_index']
             )
 
-            col1, col2 = st.columns([6, 6])
-            with col1:
-                if st.button("Anterior"):
-                    st.session_state['patch_index'] = \
-                        max(0, st.session_state['patch_index'] - 1)
+            st.sidebar.header("Sub-imagen")
+            # Sidebar buttons
+            with st.sidebar:
 
-            with col2:
-                if st.button("Siguiente"):
-                    st.session_state['patch_index'] = \
-                        min(len(st.session_state['patches']) - 1, \
-                            st.session_state['patch_index'] + 1)
+                col1, col2 = st.columns([2, 2])
+                with col1:
+                    if st.button("Anterior"):
+                        st.session_state['patch_index'] = \
+                            max(0, st.session_state['patch_index'] - 1)
 
-            update_patch_data(st.session_state, patch_width, patch_height)
+                with col2:
+                    if st.button("Siguiente"):
+                        st.session_state['patch_index'] = \
+                            min(len(st.session_state['patches']) - 1, \
+                                st.session_state['patch_index'] + 1)
+
+            update_patch_data(st.session_state, patch_width, patch_height, scale)
 
             img_path = f"patch_{st.session_state['patch_index']}.jpg"
 
@@ -299,6 +322,8 @@ def main():
                 label_list=label_list,
                 points=st.session_state['patch_points'],
                 labels=st.session_state['patch_labels'],
+                width = display_size[0],
+                height = display_size[1],
                 use_space=True,
                 key=img_path,
                 mode = mode,
@@ -307,26 +332,28 @@ def main():
             
             # Update points and labels in session state if any changes are made
             if new_labels is not None:
-                update_annotations(new_labels, st.session_state, patch_width, patch_height)
+                update_annotations(new_labels, st.session_state, patch_width, patch_height, scale)
                 update_results(st.session_state, uploaded_file_name)
 
-        # Sidebar buttons
-        with st.sidebar:
-            # **1st Download Button** - CSV Annotations
-            st.download_button(
-                label="Descargar anotaciones (CSV)",
-                data=st.session_state['csv_data'],
-                file_name=f"{uploaded_file_name}.csv",
-                mime="text/csv"
-            )
 
-            # **2nd Download Button** - Annotation Report
-            st.download_button(
-                label="Descargar Reporte (txt)",
-                data=st.session_state['report_data'],
-                file_name=f'{uploaded_file_name}.txt',
-                mime='text/plain'
-            )
+            st.sidebar.header("Resultados")
+            # Sidebar buttons
+            with st.sidebar:
+                # **1st Download Button** - CSV Annotations
+                st.download_button(
+                    label="Descargar anotaciones (CSV)",
+                    data=st.session_state['csv_data'],
+                    file_name=f"{uploaded_file_name}.csv",
+                    mime="text/csv"
+                )
+
+                # **2nd Download Button** - Annotation Report
+                st.download_button(
+                    label="Descargar Reporte (txt)",
+                    data=st.session_state['report_data'],
+                    file_name=f'{uploaded_file_name}.txt',
+                    mime='text/plain'
+                )
 
 
 
